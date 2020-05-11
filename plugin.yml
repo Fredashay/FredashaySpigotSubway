@@ -1,0 +1,11 @@
+name: FredashaySpigotSubway
+main: FredashaySpigotSubway.MyPlugin
+version: 2.0
+api-version: 1.15
+description: This plugin builds subways across your world. 
+author: Fredashay
+website: https://www.spigotmc.org/resources/authors/fredashay.38349/
+database: true
+commands:
+   subway:
+      description: Various commands for building subways. 
