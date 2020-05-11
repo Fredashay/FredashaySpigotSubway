@@ -35,7 +35,8 @@ the way.  Survey your route by eye in Spectator mode before you build!
     PROPERTIES FILE
     
     This plugin creates a subway.properties file the first time it runs.  The properties file contains
-several default settings for region and tunnel styles.     
+several default settings for region and tunnel styles.
+
      If the properties file specifies REGION=USA or REGION=CANADA, the detectors will be placed ahead 
 of the powered rails on the right hand side, so that minecarts will accelerate on the right side and 
 be stopped on the left.  If you specify REGION=UK or REGION=JAPAN, the reverse will be true.
