@@ -1168,6 +1168,7 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
 		//Material whatsAt67 = getBlockType(subwayDistance, 3, 3);	
 
 		/* clear and illuminate ahead of tunnel */
+		/*
 		changeBlockType((subwayDistance + 1), 1,-1,Material.AIR);
 		changeBlockType((subwayDistance + 1), 1, 0,Material.AIR);
 		changeBlockType((subwayDistance + 1), 1, 1,Material.AIR);
@@ -1176,6 +1177,7 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
 		changeBlockType((subwayDistance + 1), 0, 1,Material.ORANGE_CONCRETE);
 		changeBlockType((subwayDistance + 1), 1,-1,Material.TORCH);
 		changeBlockType((subwayDistance + 1), 1, 1,Material.TORCH);
+		/* */
 		
 		/* clear center of tunnel */
 		changeBlockType(subwayDistance, 1,-1,Material.AIR);
@@ -1212,7 +1214,7 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
 					if (solidBlock(whatsAt12)) {
 				        changeBlockType(subwayDistance,-1,-2,Material.GRAVEL);            
 					    }
-					else if ((waterBlock(whatsAt12)) || (waterBlock(whatsAt11))) {
+					else if ((waterBlock(whatsAt12)) || (waterBlock(whatsAt11))) {   
 						changeBlockType(subwayDistance,-1,-2,Material.MOSSY_COBBLESTONE);
 					    }
 					else {
@@ -1296,7 +1298,7 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
 					if (solidBlock(whatsAt16)) {
 				        changeBlockType(subwayDistance,-1, 2,Material.GRAVEL);       
 					    }
-					else if ((waterBlock(whatsAt16)) || waterBlock(whatsAt17)) {
+					else if ((waterBlock(whatsAt16)) || (waterBlock(whatsAt17))) {      
 						changeBlockType(subwayDistance,-1, 2,Material.MOSSY_COBBLESTONE);
 					    }
 					else {
@@ -1925,6 +1927,20 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
 			    changeBlockType(subwayDistance, 0, 1,Material.RAIL);
 			    }
 		    }
+		
+		/* fix fences hanging in mid air */
+		if ((solidBlock(getBlockType(subwayDistance, 2,-2)) && (airBlock(getBlockType(subwayDistance, 1,-2))))) {
+			changeBlockType(subwayDistance, 1,-2,Material.IRON_BARS);
+		    }
+		if ((solidBlock(getBlockType(subwayDistance, 2, 2)) && (airBlock(getBlockType(subwayDistance, 1, 2))))) {
+			changeBlockType(subwayDistance, 1, 2,Material.IRON_BARS);
+		    }
+		if ((getBlockType(subwayDistance, 1,-2) == Material.IRON_BARS) && (airBlock(getBlockType(subwayDistance, 0,-2)))) {
+			changeBlockType(subwayDistance, 0,-2,Material.IRON_BARS);
+		    }
+		if ((getBlockType(subwayDistance, 1, 2) == Material.IRON_BARS) && (airBlock(getBlockType(subwayDistance, 0, 2)))) {
+			changeBlockType(subwayDistance, 0, 2,Material.IRON_BARS);
+		    }
 						
 		/* install minecart teleporters along track */ 
 		if (fast) {
@@ -2145,9 +2161,12 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
 				if (absoluteY(height) > buildPlayer.getWorld().getMaxHeight()) {
 					climbing = false;
 				    }
-				else {
+				else {					
 					thingy = getBlockType(subwayDistance,height,column);
-					if (thingy.isAir()) {
+					if (thingy == Material.BEDROCK) {
+						climbing = false;						
+					    }
+					else if (thingy.isAir()) {
 						climbing = false;
 					    }
 					else if (thingy == Material.AIR) {
@@ -2224,6 +2243,35 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
 			    }
 			column = column + 1;
 		    }
+		
+		/* remove blocks floating in mid air above track */
+		column = -2;
+		while (column <= 2) {
+			if (solidBlock(getBlockType(subwayDistance, 2, column)) && (airBlock(getBlockType(subwayDistance, 2,(column - 1)))) && (airBlock(getBlockType(subwayDistance, 2,(column + 1))))) {
+				climbing = true;
+				height = 3;
+				while (climbing) {
+					if (height > buildPlayer.getWorld().getMaxHeight()) {
+						climbing = false;
+					    }
+					else {
+						Material material = getBlockType(subwayDistance,height,column);
+						if ((material.isAir()) || (material == Material.BEDROCK)) {
+						    climbing = false;
+						    }
+						else {
+							height = height + 1;
+						    }
+				        }
+				    }		
+				height = height - 1;
+				while (height >= 2) {
+					changeBlockType(subwayDistance,height,column,Material.AIR);
+					height = height - 1;
+				    }
+			    }
+			column = column + 1;
+		    }				
 		
 		/* place supports under the track */
 		if (bridgeStyle == CONCRETE) {
@@ -2594,7 +2642,7 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
 				    }
 				else {
 					Material material = getBlockType(subwayDistance,newHeight,subwayColumn);
-					if ((material.hasGravity()) || (material.isAir()) || (plantMatter(material))) {
+					if ((material.hasGravity()) || (material.isAir()) || (plantMatter(material)) || (material == Material.BEDROCK)) {
 					    newHeight = newHeight + 1;
 					    }
 					else {
