@@ -31,6 +31,10 @@
  *     WARNING!  The plugin doesn't detect houses, villages, temples, fortresses, strongholds, portals,  
  * sunken ships, mansions, or other players' bases, etc.  It will build the subway through anything in 
  * the way.  Survey your route by eye in Spectator mode before you build!
+ * 
+ *    You can issue /SUBWAY HALT to halt construction.
+ *    
+ *    You can issue /SUBWAY RESUME to resume construction that has been halted.
  *
  *    PROPERTIES FILE
  *
@@ -198,6 +202,7 @@ import org.bukkit.event.entity.PotionSplashEvent;
 import org.bukkit.event.hanging.HangingPlaceEvent;
 import org.bukkit.event.player.PlayerBucketEmptyEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.weather.LightningStrikeEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
@@ -258,7 +263,8 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
 		pdfFile = getDescription();
     	getServer().getPluginManager().registerEvents(this,this);  
     	logger = Logger.getLogger("Minecraft");
-    	String fileName = pdfFile.getName() + ".properties";    
+    	String fileName = pdfFile.getName() + ".properties";  
+    	subwayLength = 0;
       	getProperties(fileName);
       	if (subwayRegion == USA) {
       	    logger.info("[" + pdfFile.getName() + "] Region is USA.  Minecarts drive on the right.  ");
@@ -329,6 +335,14 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
 	    if (bookFileName == null) {
 	    	logger.severe("[" + pdfFile.getName() + "] File \"book(" + bookTitle + ").txt\" is missing. ");
 	        }
+        }
+	
+    @Override
+    public void onDisable() {
+   	    if (building) {
+		    building = false;
+		    subwayLength = 0;
+    	    }
         }
 		
 	private void getProperties(String fileName) {
@@ -518,6 +532,17 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
 					    }
 					else {
 						player.sendMessage("<SUBWAY> There is no subway construction at the moment to halt. ");
+					    }
+				    }
+				else if ((args.length == 1) && (args[0].toLowerCase().equalsIgnoreCase("resume"))) {
+					if (building) {
+						player.sendMessage("<SUBWAY> There is currently a subway under construction. ");
+					    }
+					else if (subwayDistance == 0) {
+						player.sendMessage("<SUBWAY> There is no subway construction that has been halted. ");
+					    }
+					else {
+						building = true;
 					    }
 				    }
 				else if (building) {
@@ -1048,6 +1073,7 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
 	private void onTick() {
 		if (subwayDistance >= subwayLength) {
 			building = false;
+			subwayLength = 0;
 			buildPlayer.getWorld().save();
 			logger.info("[" + pdfFile.getName() + "] Subway construction is complete. ");
 			buildPlayer.sendMessage("<SUBWAY> Your subway is complete. ");
@@ -1342,7 +1368,7 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
 				    changeBlockType(subwayDistance, 0,-2,Material.OAK_PLANKS);    
 			        }
 				else {
-				    changeBlockType(subwayDistance, 0,-2,Material.AIR);           
+				    changeBlockType(subwayDistance, 0,-2,Material.AIR);      
 				    }
 			    }
 		    }
@@ -1379,7 +1405,6 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
                 else {
 				    changeBlockType(subwayDistance, 0,-2,Material.AIR);
                     }
-
 			    }
 			}
 		if ((airBlock(getBlockType(subwayDistance, 0,-2))) && (getBlockType(subwayDistance, 1,-2) == Material.IRON_BARS)) {
@@ -1409,7 +1434,7 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
 				    changeBlockType(subwayDistance, 0, 2,Material.OAK_PLANKS);    
 			        }
 				else {
-				    changeBlockType(subwayDistance, 0, 2,Material.AIR);           
+				    changeBlockType(subwayDistance, 0, 2,Material.AIR); 
 				    }
 			    }
 		    }
@@ -2149,7 +2174,7 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
 				    }
 			    }
 		    }
-		
+				
 		/* clear debris above track */ 		
 		Material thingy = null;
 		boolean climbing = false;
@@ -2166,6 +2191,69 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
 					if (thingy == Material.BEDROCK) {
 						climbing = false;						
 					    }
+					else if (thingy == Material.ACACIA_LOG) {
+						clearBlockType(subwayDistance,height,column,Material.AIR);
+					    }
+					else if (thingy == Material.BIRCH_LOG) {
+						clearBlockType(subwayDistance,height,column,Material.AIR);
+					    }
+					else if (thingy == Material.DARK_OAK_LOG) {
+						clearBlockType(subwayDistance,height,column,Material.AIR);
+					    }
+					else if (thingy == Material.JUNGLE_LOG) {
+						clearBlockType(subwayDistance,height,column,Material.AIR);
+					    }
+					else if (thingy == Material.OAK_LOG) {
+						clearBlockType(subwayDistance,height,column,Material.AIR);
+					    }
+					else if (thingy == Material.SPRUCE_LOG) {
+						clearBlockType(subwayDistance,height,column,Material.AIR);
+					    }
+					else if (thingy == Material.BUBBLE_COLUMN) { 
+						clearBlockType(subwayDistance,height,column,Material.WATER);
+					    }
+					else if (thingy == Material.KELP) {
+						clearBlockType(subwayDistance,height,column,Material.WATER);
+					    }
+					else if (thingy == Material.KELP_PLANT) {
+						clearBlockType(subwayDistance,height,column,Material.WATER);
+					    }
+					else if (thingy == Material.SEAGRASS) {
+						clearBlockType(subwayDistance,height,column,Material.WATER);
+					    }
+					else if (thingy == Material.TALL_SEAGRASS) {
+						clearBlockType(subwayDistance,height,column,Material.WATER);
+					    }
+					else if (thingy == Material.TUBE_CORAL) {
+						clearBlockType(subwayDistance,height,column,Material.WATER);
+					    }
+					else if (thingy == Material.BRAIN_CORAL) {
+						clearBlockType(subwayDistance,height,column,Material.WATER);
+					    }
+					else if (thingy == Material.BUBBLE_CORAL) {
+						clearBlockType(subwayDistance,height,column,Material.WATER);
+					    }
+					else if (thingy == Material.FIRE_CORAL) {
+						clearBlockType(subwayDistance,height,column,Material.WATER);
+					    }
+					else if (thingy == Material.HORN_CORAL) {
+						clearBlockType(subwayDistance,height,column,Material.WATER);
+					    }					
+					else if (thingy == Material.TUBE_CORAL_FAN) {
+						clearBlockType(subwayDistance,height,column,Material.WATER);
+					    }
+					else if (thingy == Material.BRAIN_CORAL_FAN) {
+						clearBlockType(subwayDistance,height,column,Material.WATER);
+					    }
+					else if (thingy == Material.BUBBLE_CORAL_FAN) {
+						clearBlockType(subwayDistance,height,column,Material.WATER);
+					    }
+					else if (thingy == Material.FIRE_CORAL_FAN) {
+						clearBlockType(subwayDistance,height,column,Material.WATER);
+					    }
+					else if (thingy == Material.HORN_CORAL_FAN) {
+						clearBlockType(subwayDistance,height,column,Material.WATER);
+					    }
 					else if (thingy.isAir()) {
 						climbing = false;
 					    }
@@ -2177,66 +2265,6 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
 					    }
 					else if (thingy == Material.LAVA) {
 						climbing = false;
-					    }
-					else if (thingy == Material.ACACIA_LOG) {
-						changeBlockType(subwayDistance,height,column,Material.AIR);
-					    }
-					else if (thingy == Material.BIRCH_LOG) {
-						changeBlockType(subwayDistance,height,column,Material.AIR);
-					    }
-					else if (thingy == Material.DARK_OAK_LOG) {
-						changeBlockType(subwayDistance,height,column,Material.AIR);
-					    }
-					else if (thingy == Material.JUNGLE_LOG) {
-						changeBlockType(subwayDistance,height,column,Material.AIR);
-					    }
-					else if (thingy == Material.OAK_LOG) {
-						changeBlockType(subwayDistance,height,column,Material.AIR);
-					    }
-					else if (thingy == Material.SPRUCE_LOG) {
-						changeBlockType(subwayDistance,height,column,Material.AIR);
-					    }
-					else if (thingy == Material.KELP) {
-						changeBlockType(subwayDistance,height,column,Material.WATER);
-					    }
-					else if (thingy == Material.KELP_PLANT) {
-						changeBlockType(subwayDistance,height,column,Material.WATER);
-					    }
-					else if (thingy == Material.SEAGRASS) {
-						changeBlockType(subwayDistance,height,column,Material.WATER);
-					    }
-					else if (thingy == Material.TALL_SEAGRASS) {
-						changeBlockType(subwayDistance,height,column,Material.WATER);
-					    }
-					else if (thingy == Material.TUBE_CORAL) {
-						changeBlockType(subwayDistance,height,column,Material.WATER);
-					    }
-					else if (thingy == Material.BRAIN_CORAL) {
-						changeBlockType(subwayDistance,height,column,Material.WATER);
-					    }
-					else if (thingy == Material.BUBBLE_CORAL) {
-						changeBlockType(subwayDistance,height,column,Material.WATER);
-					    }
-					else if (thingy == Material.FIRE_CORAL) {
-						changeBlockType(subwayDistance,height,column,Material.WATER);
-					    }
-					else if (thingy == Material.HORN_CORAL) {
-						changeBlockType(subwayDistance,height,column,Material.WATER);
-					    }					
-					else if (thingy == Material.TUBE_CORAL_FAN) {
-						changeBlockType(subwayDistance,height,column,Material.WATER);
-					    }
-					else if (thingy == Material.BRAIN_CORAL_FAN) {
-						changeBlockType(subwayDistance,height,column,Material.WATER);
-					    }
-					else if (thingy == Material.BUBBLE_CORAL_FAN) {
-						changeBlockType(subwayDistance,height,column,Material.WATER);
-					    }
-					else if (thingy == Material.FIRE_CORAL_FAN) {
-						changeBlockType(subwayDistance,height,column,Material.WATER);
-					    }
-					else if (thingy == Material.HORN_CORAL_FAN) {
-						changeBlockType(subwayDistance,height,column,Material.WATER);
 					    }
 				    }			
 				height = height + 1;
@@ -2653,7 +2681,7 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
 			newHeight = newHeight - 1;
 			while (newHeight >= subwayHeight) {
 			    if (getBlockType(subwayDistance,newHeight,subwayColumn).hasGravity()) {
-				    changeBlockType(subwayDistance,newHeight,subwayColumn,Material.DIRT);
+				    clearBlockType(subwayDistance,newHeight,subwayColumn,Material.DIRT);
 			        }
 				newHeight = newHeight - 1;
 			    }
@@ -2818,6 +2846,24 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
 			yesNo = true;
 		    }
 		else if (material == Material.HORN_CORAL_FAN) {
+			yesNo = true;
+		    }
+		else if (material == Material.TUBE_CORAL_WALL_FAN) {
+			yesNo = true;
+		    }
+		else if (material == Material.BRAIN_CORAL_WALL_FAN) {
+			yesNo = true;
+		    }
+		else if (material == Material.BUBBLE_CORAL_WALL_FAN) {
+			yesNo = true;
+		    }
+		else if (material == Material.FIRE_CORAL_WALL_FAN) {
+			yesNo = true;
+		    }
+		else if (material == Material.HORN_CORAL_WALL_FAN) {
+			yesNo = true;
+		    }
+		else if (material == Material.BUBBLE_COLUMN) {
 			yesNo = true;
 		    }
 		return (yesNo);
@@ -2994,15 +3040,31 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
     	return (block.getType());
         }
     
-    private void changeBlockType(int distancePos, int altitudePos, int centerPos, Material material) {
+    private void changeBlockType(int distancePos, int altitudePos, int centerPos, Material material) {    	
     	Block block = null;
 		block = getBlock(distancePos,altitudePos,centerPos);
 		block.setType(material);
 		insertBlock(block);
         }
     
+    private void clearBlockType(int distancePos, int altitudePos, int centerPos, Material material) {
+    	Block block = null;
+		block = getBlock(distancePos,altitudePos,centerPos);
+		block.setType(material);
+        }
+    
     @EventHandler (priority = EventPriority.LOW)
-    public void entityInteractHandler (EntityInteractEvent event) {
+    public void playerQuitEventHandler(PlayerQuitEvent event) {
+    	Player player = event.getPlayer();
+    	if (player.equals(buildPlayer)) {
+    	    if (building) {
+			    building = false;
+    	        }
+    	    }
+        }
+    
+    @EventHandler (priority = EventPriority.LOW)
+    public void entityInteractEventHandler (EntityInteractEvent event) {
 		Block block = event.getBlock();
 		if (queryProtectedLocation(block.getLocation())) {
    			event.setCancelled(true);  
