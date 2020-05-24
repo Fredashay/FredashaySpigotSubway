@@ -244,6 +244,7 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
 	private static char subwayDirection = ' ';
 	private static int subwayLength = 0;
 	private static int subwayDistance = 0;
+	private static int subwayComplete = 0;
 	private static char subwayRegion = USA;
 	private static char tunnelStyle = STONE;
 	private static char bridgeStyle = STONE;
@@ -528,8 +529,8 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
 				if ((args.length == 1) && (args[0].toLowerCase().equalsIgnoreCase("halt"))) {
 					if (building) {
 						building = false;
-		            	player.sendMessage("<SUBWAY> Subway construction is halted. ");
-					    }
+		            	player.sendMessage("<SUBWAY> Subway construction is halted at " + subwayComplete + "%. "); 					    
+		            	}
 					else {
 						player.sendMessage("<SUBWAY> There is no subway construction at the moment to halt. ");
 					    }
@@ -538,11 +539,13 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
 					if (building) {
 						player.sendMessage("<SUBWAY> There is currently a subway under construction. ");
 					    }
-					else if (subwayDistance == 0) {
+					else if (subwayLength == 0) {
 						player.sendMessage("<SUBWAY> There is no subway construction that has been halted. ");
 					    }
 					else {
 						building = true;
+						player.sendMessage("<SUBWAY> Subway construction is resumed from " + subwayComplete + "%. ");
+		            	clock();
 					    }
 				    }
 				else if (building) {
@@ -813,6 +816,7 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
 	            		else {	            		
 			            	building = true;
 			            	subwayDistance = 0;
+			            	subwayComplete = 0;
 			            	buildPlayer = player;
 			            	String dirMessage = null;
 			        		if (subwayDirection == NORTH) {
@@ -859,7 +863,7 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
         }	
 	
 	private void clock() {
-		if (building) {
+		if (building) {					
 	        getServer().getScheduler().scheduleSyncDelayedTask(this, new Runnable() {
 	            public void run() {
 	                onTick();	             
@@ -1071,26 +1075,35 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
         }	
     
 	private void onTick() {
-		if (subwayDistance >= subwayLength) {
-			building = false;
-			subwayLength = 0;
-			buildPlayer.getWorld().save();
-			logger.info("[" + pdfFile.getName() + "] Subway construction is complete. ");
-			buildPlayer.sendMessage("<SUBWAY> Your subway is complete. ");
-		    }
-		else if (semaphore) {
-			logger.info("[" + pdfFile.getName() + "] Server looks like it is struggling.  Subway construction speed reduced. ");
-		    clockDelay = clockDelay * 2;
-		    while (semaphore) {}
-		    }
 		if (building) {
-			if (semaphore == false) {
+			if (subwayDistance >= subwayLength) {
+				building = false;
+				subwayLength = 0;
+				buildPlayer.getWorld().save();
+				logger.info("[" + pdfFile.getName() + "] Subway construction is complete. ");
+				buildPlayer.sendMessage("<SUBWAY> Your subway is complete. ");
+			    }
+			else if (semaphore) {
+				logger.info("[" + pdfFile.getName() + "] Server looks like it is struggling.  Subway construction speed reduced. ");
+			    clockDelay = clockDelay * 2;
+			    while (semaphore) {}
+			    }
+			else {
 			    semaphore = true;
 			    buildSubwaySlice();
 			    if (subwayDistance == 0) {
 					tpPlayer(subwayDistance, 0, 0);
 			        }
 				subwayDistance = subwayDistance + 1;
+				float blah1 = (float) subwayDistance;
+				float blah2 = (float) subwayLength;
+				float blah3 = blah1 / blah2;
+				float blah4 = blah3 * 100;
+				int blah5 = (int) Math.floor(blah4);				
+				if (blah5 > subwayComplete) {
+					subwayComplete = blah5; 
+				    logger.info("[" + pdfFile.getName() + "] Subway is " + subwayComplete + "% complete. ");
+				    }
 				semaphore = false;
 			    }
 		    }		
@@ -1109,7 +1122,7 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
 		int height = 0;
 		int column = 0;
 		int randomNumber = 0;		
-		
+			
 		if ((Math.floor(actualDistance / 12) * 12) == actualDistance) {
 			snapPoint = true;
 		    }
@@ -3939,6 +3952,6 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
     			invIx = invIx + 1;
     		    }
     	    }
-	    }
+	}
 	
     }
