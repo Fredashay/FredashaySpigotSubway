@@ -544,6 +544,7 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
 					    }
 					else {
 						building = true;
+		            	buildPlayer = player;
 						player.sendMessage("<SUBWAY> Subway construction is resumed from " + subwayComplete + "%. ");
 		            	clock();
 					    }
@@ -3952,6 +3953,6 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
     			invIx = invIx + 1;
     		    }
     	    }
-	}
+	    }
 	
     }
