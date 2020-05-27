@@ -72,7 +72,13 @@
  * or you'll be nagged constantly whenever someone uses the subway.
  *
  *     Lastly, if you keep the plugin loaded on your server after you build all your subways, it 
- * will protect the subway tracks from griefing and hostile mobs. 
+ * will protect the subway tracks from griefing and hostile mobs.  The extent of this protection
+ * depends on the PROTECT= value.  If you set PROTECT=OFF, there will be no protection, which is
+ * best if you are running a private server that only trusted friends will play on or you are 
+ * building a world that is not yet open to the public.  If you set PROTECT=MIN, there will be
+ * minimal protection protecting the subway from griefing,  If you set PROTECT=MAX, the subway will
+ * be protected from griefing, and hostile mobs will not be able to harm players riding on the subway.
+ * This last option will stress the server if you have a large an complex subway system.    
  * 
  *     STATIONS 
  * 
@@ -211,6 +217,7 @@ import org.bukkit.inventory.meta.BookMeta;
 import org.bukkit.plugin.PluginDescriptionFile;
 import org.bukkit.plugin.java.JavaPlugin;
 	
+@SuppressWarnings("unused")
 public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {	
 	
 	final static char USA = 'A';
@@ -248,6 +255,7 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
 	private static char subwayRegion = USA;
 	private static char tunnelStyle = STONE;
 	private static char bridgeStyle = STONE;
+	private static byte protection = 1;
 	private static boolean semaphore = false;
 	private static boolean fast = false;	 	
 	private static Logger logger = null;
@@ -328,6 +336,15 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
       	else {
       	    logger.info("[" + pdfFile.getName() + "] Fast travel is off.  Minecarts will travel along the rails at normal game speed.  ");
       	    }
+      	if (protection == 0) {
+      		logger.info("[" + pdfFile.getName() + "] Protection is OFF.  Subway tunnels aren't protected from mobs or griefing.  This option is best used while building your world before opening it to the public, or if only a few trusted friends will play. ");
+      	    }
+      	else if (protection == 1) {
+      		logger.info("[" + pdfFile.getName() + "] Protection is MINimum.  Subway tunnels are protected from griefing, but not not from mobs.  This option is best used if you have a large and complex subway system and MAXimum protection causes excessive lag. ");
+      	    }
+      	else if (protection == 2) {
+      		logger.info("[" + pdfFile.getName() + "] Protection is MAXimum.  Subway tunnels are protected from griefing and mobs.  This option is best if you have a powerful server, because MAXimum protection puts a heavy load on the CPU, especially if you have a large and complex subway system. ");
+      	    }      	
         logger.info("[" + pdfFile.getName() + "] The title of the book in the game is '" + bookTitle + "'.  A player will be given a copy of this book whenever he passes through a turnstile, or may request it with the BOOK command (if you have my BOOK plugin installed). The plugin will look for a file on the server named 'BOOK(" + bookTitle.toUpperCase() + ").TXT'.  ");
         logger.info("[" + pdfFile.getName() + "] The message the player is displayed in chat when he is given a copy of the transit guide book is, '" + bookMessage + "'.  ");
       	logger.info("[" + pdfFile.getName() + "] You can change these by editing FredashaySpigotSubway.properties. ");
@@ -373,6 +390,7 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
           	if (isNumeric(props.getProperty("ALIGNMENT"))) {
           		subwayAlignment = toInteger(props.getProperty("ALIGNMENT"));
               	if ((subwayAlignment < 4) || (subwayAlignment > 120)) {
+              		logger.warning("[" + pdfFile.getName() + "] Invalid ALIGNMENT value '" + props.getProperty("ALIGNMENT") + "'.  Using default. ");
               		subwayAlignment = 6;
               	    }
       	        }
@@ -391,6 +409,7 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
     		    subwayRegion = USA;
     		    }
     		else {
+    			logger.warning("[" + pdfFile.getName() + "] Invalid REGION value '" + props.getProperty("REGION") + "'.  Using default. ");
     			subwayRegion = USA;
     		    }
     	    }
@@ -408,6 +427,7 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
     		    tunnelStyle = WOOD;
     		    }
     		else {
+    			logger.warning("[" + pdfFile.getName() + "] Invalid TUNNEL value '" + props.getProperty("TUNNEL") + "'.  Using default. ");
     			tunnelStyle = STONE;
     		    }    		
     	    }
@@ -425,6 +445,7 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
     		    bridgeStyle = WOOD;
     		    }
     		else {
+    			logger.warning("[" + pdfFile.getName() + "] Invalid BRIDGE value '" + props.getProperty("BRIDGE") + "'.  Using default. ");
     			bridgeStyle = IRON;
     		    }
 		    }
@@ -436,6 +457,7 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
     			fast = false;
     		    }
     		else {
+    			logger.warning("[" + pdfFile.getName() + "] Invalid FAST value '" + props.getProperty("FAST") + "'.  Using default. ");
     			fast = false;
     		    }
 		    }
@@ -444,6 +466,27 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
 		    }
 		if (props.getProperty("MESSAGE") != null) {
 			bookMessage = props.getProperty("MESSAGE");
+		    }
+		if (props.getProperty("PROTECT") != null) {
+    		if (props.getProperty("PROTECT").equalsIgnoreCase("OFF")) {
+    			protection = 0;
+    		    }
+    		else if (props.getProperty("PROTECT").equalsIgnoreCase("FALSE")) {
+    			protection = 0;
+    		    }
+    		else if (props.getProperty("PROTECT").equalsIgnoreCase("MIN")) {
+    			protection = 1;
+    		    }
+    		else if (props.getProperty("PROTECT").equalsIgnoreCase("MAX")) {
+    			protection = 2;
+    		    }
+    		else if (props.getProperty("PROTECT").equalsIgnoreCase("TRUE")) {
+    			protection = 2;
+    		    }
+    		else {
+    			logger.warning("[" + pdfFile.getName() + "] Invalid PROTECT value '" + props.getProperty("PROTECT") + "'.  Using default. ");
+    			protection = 1;
+		        }
 		    }
 	    }
 	
@@ -505,6 +548,15 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
 			    }
 		    props.setProperty("TITLE", bookTitle + " ");
 		    props.setProperty("MESSAGE", bookMessage + " ");
+		    if (protection <= 0) {
+		    	props.setProperty("PROTECT", "OFF ");
+		        }
+		    else if (protection == 1) {
+		    	props.setProperty("PROTECT", "MIN ");
+		        }
+		    else if (protection >= 2) {
+		    	props.setProperty("PROTECT", "MAX ");
+		        }
 			props.store(output, null);
 		    } 
 		catch (IOException oops) {
@@ -520,7 +572,7 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
 				}
 			}
 	    }
-    		
+    		    		
 	@Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
 		if (label.equalsIgnoreCase("SUBWAY")) {
@@ -747,13 +799,13 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
 	            		    	else {
 	            		    		subwayLength = toInteger(argValue);
 	            		    		if (subwayLength < 1) {
-	            		    			player.sendMessage("<SUBWAY> LENGTH must be an integer from 1 to 1000. ");
+	            		    			player.sendMessage("<SUBWAY> LENGTH must be an integer from 1 to 10000. ");
 	            		    			subwayLength = 1;
 	            		    			error = true;
 	            		    		    }
-	            		    		else if (subwayLength > 1000) {
-	            		    			player.sendMessage("<SUBWAY> LENGTH must be an integer from 1 to 1000. ");
-	            		    			subwayLength = 1000;
+	            		    		else if (subwayLength > 10000) {
+	            		    			player.sendMessage("<SUBWAY> LENGTH must be an integer from 1 to 10000. ");
+	            		    			subwayLength = 10000;
 	            		    			error = true;
 	            		    		    }
 	            		    		else {
@@ -1102,6 +1154,7 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
 				float blah4 = blah3 * 100;
 				int blah5 = (int) Math.floor(blah4);				
 				if (blah5 > subwayComplete) {
+					buildPlayer.getWorld().save();
 					subwayComplete = blah5; 
 				    logger.info("[" + pdfFile.getName() + "] Subway is " + subwayComplete + "% complete. ");
 				    }
@@ -1652,7 +1705,7 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
 				    }
 			    }
 			if (snapPoint_1) {
-				if (whatsAt46 == Material.WATER) {
+				if (whatsAt64 == Material.WATER) {                  
 					randomNumber = random.nextInt(4);
 					if (randomNumber == 0) {
 					    changeBlockType(subwayDistance, 0, 0,Material.MOSSY_STONE_BRICK_WALL);
@@ -2274,12 +2327,14 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
 					else if (thingy == Material.AIR) {
 						climbing = false;
 					    }
-					else if (thingy == Material.WATER) {
+					else if (liquidBlock(thingy)) {
 						climbing = false;
 					    }
+					/*
 					else if (thingy == Material.LAVA) {
 						climbing = false;
 					    }
+					/* */
 				    }			
 				height = height + 1;
 			    }
@@ -2888,6 +2943,15 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
 		if (material == Material.WATER) {
 			yesNo = true;
 		    }
+		else if (material == Material.ICE) {
+			yesNo = true;
+		    }
+		else if (material == Material.PACKED_ICE) {
+			yesNo = true;
+		    }
+		else if (material == Material.BLUE_ICE) {
+			yesNo = true;
+		    }
 		else if (waterPlant(material)) {
 			yesNo = true;
 		    }
@@ -2896,13 +2960,10 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
 	
 	private boolean liquidBlock(Material material) {
 		boolean yesNo = false;
-		if (material == Material.WATER) {
+		if (material == Material.LAVA) {
 			yesNo = true;
 		    }
-		else if (material == Material.LAVA) {
-			yesNo = true;
-		    }
-		else if (waterPlant(material)) {
+		else if (waterBlock(material)) {
 			yesNo = true;
 		    }
 		return (yesNo);
@@ -3077,99 +3138,6 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
     	    }
         }
     
-    @EventHandler (priority = EventPriority.LOW)
-    public void entityInteractEventHandler (EntityInteractEvent event) {
-		Block block = event.getBlock();
-		if (queryProtectedLocation(block.getLocation())) {
-   			event.setCancelled(true);  
-            }
-        }
-    
-	@EventHandler (priority = EventPriority.LOW)
-    public void blockBreakEventHandler(BlockBreakEvent event) {
-		Block block = event.getBlock();
-		if (queryProtectedLocation(block.getLocation())) {
-			if ((block.getType().hasGravity() || (block.getType() == Material.MINECART))) {
-				return;
-			    }
-			else {
-				Player player = event.getPlayer();
-				if (player.isOp()) {
-					if (opStick(player)) {
-						return;
-					    }
-					else {
-					    event.getPlayer().sendMessage("<SUBWAY> You must be weilding your OP Stick to work on the railroad. ");
-					    event.setCancelled(true);
-					    }
-				    }
-				else {
-				    event.getPlayer().sendMessage("<SUBWAY> The subway is protected from griefing. ");
-				    event.setCancelled(true);
-				    }
-			    }
-		    }
-   	    }    
-        
-    @EventHandler (priority = EventPriority.LOW) 
-    public void blockDamageEventHandler (BlockDamageEvent event) {
-		Block block = event.getBlock();
-		if (queryProtectedLocation(block.getLocation())) {
-			if ((block.getType().hasGravity() || (block.getType() == Material.MINECART))) {
-				return;
-			    }
-			else {
-				Player player = event.getPlayer();
-				if (player.isOp()) {
-					if (opStick(player)) {
-						return;
-					    }
-					else {
-					    event.getPlayer().sendMessage("<SUBWAY> You must be weilding your OP Stick to work on the railroad. ");
-		    		    event.setCancelled(true);
-					    }
-				    }
-				else {
-				    event.getPlayer().sendMessage("<SUBWAY> The subway is protected from griefing. ");
-	    		    event.setCancelled(true);
-				    }
-			    }
-		    }
-   	    }   
-    
-    @EventHandler (priority = EventPriority.LOW)
-    public void blockExplodeEventHandler (BlockExplodeEvent event) {
-		if (queryProtectedLocation(event.getBlock().getLocation())) {
-   		    event.setCancelled(true);
-		    }
-        }  
-    
-    @EventHandler (priority = EventPriority.LOW) 
-    public void blockPlaceEventHandler (BlockPlaceEvent event) {
-		Block block = event.getBlock();
-		if (queryProtectedLocation(block.getLocation())) {
-			if (block.getType() == Material.MINECART) {
-				return;
-			    }
-			else {
-				Player player = event.getPlayer();
-				if (player.isOp()) {
-					if (opStick(player)) {
-						return;
-					    }
-					else {
-					    event.getPlayer().sendMessage("<SUBWAY> You must be weilding your OP Stick to work on the railroad. ");
-		    		    event.setCancelled(true);
-					    }
-				    }
-				else {
-				    event.getPlayer().sendMessage("<SUBWAY> The subway is protected from griefing. ");
-	    		    event.setCancelled(true);
-				    }
-			    }
-		    }
-	    }
-    
     @EventHandler (priority = EventPriority.LOW) 
     public void blockFromToEventHandler (BlockFromToEvent event) {
 		if (queryProtectedLocation(event.getBlock().getLocation())) {
@@ -3181,7 +3149,156 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
 	    }    
     
     @EventHandler (priority = EventPriority.LOW) 
-    public void blockIgniteEventHandler (BlockIgniteEvent event) {
+    public void blockPlaceEventHandler (BlockPlaceEvent event) {
+		if (protection > 0) {
+			Block block = event.getBlock();
+			if (queryProtectedLocation(block.getLocation())) {
+				if (block.getType() == Material.MINECART) {
+					return;
+				    }
+				else {
+					Player player = event.getPlayer();
+					if (player.isOp()) {
+						if (opStick(player)) {
+							return;
+						    }
+						else {
+						    event.getPlayer().sendMessage("<SUBWAY> You must be weilding your OP Stick to work on the railroad. ");
+			    		    event.setCancelled(true);
+						    }
+					    }
+					else {
+					    event.getPlayer().sendMessage("<SUBWAY> The subway is protected from griefing. ");
+		    		    event.setCancelled(true);
+					    }
+				    }
+			    }
+		    }
+	    }  
+
+	@EventHandler (priority = EventPriority.LOW)
+    public void blockBreakEventHandler(BlockBreakEvent event) {
+		if (protection > 0) {
+			Block block = event.getBlock();
+			if (queryProtectedLocation(block.getLocation())) {
+				if ((block.getType().hasGravity() || (block.getType() == Material.MINECART))) {
+					return;
+				    }
+				else {
+					Player player = event.getPlayer();
+					if (player.isOp()) {
+						if (opStick(player)) {
+							return;
+						    }
+						else {
+						    event.getPlayer().sendMessage("<SUBWAY> You must be weilding your OP Stick to work on the railroad. ");
+						    event.setCancelled(true);
+						    }
+					    }
+					else {
+					    event.getPlayer().sendMessage("<SUBWAY> The subway is protected from griefing. ");
+					    event.setCancelled(true);
+					    }
+				    }
+			    }
+		    }
+   	    }    
+	
+    @EventHandler (priority = EventPriority.LOW)
+    public void entityInteractEventHandler (EntityInteractEvent event) {
+		if (protection > 0) {
+			Block block = event.getBlock();
+			if (queryProtectedLocation(block.getLocation())) {
+	   			event.setCancelled(true);  
+	            }
+		    }
+        }  
+	
+    @EventHandler (priority = EventPriority.LOW) 
+    public void playerBucketEmptyEventHandler (PlayerBucketEmptyEvent event) {
+		if (protection > 0) {
+	    	if (queryProtectedLocation(event.getBlockClicked().getLocation())) {
+	    		Player player = event.getPlayer();
+	    		player.sendMessage("<SUBWAY> Don't empty that bucket in the subway! ");  
+			    event.setCancelled(true);
+	        	}
+		    }
+	    } 
+    
+    @EventHandler (priority = EventPriority.LOW)
+    public void entityExplodeEventHandler (EntityExplodeEvent event) {
+		if (protection > 0) {
+	    	if (event.isCancelled() == false) {
+	            List<Block> blocks = event.blockList();
+	            Block block = null;
+	            Location location = null; 
+	            int index = blocks.size() - 1;
+	            while (index >= 0) {        	
+	            	block = blocks.get(index);
+	            	location = block.getLocation();
+	            	if (queryProtectedLocation(location)) {
+	            		blocks.remove(index); 
+	            	    }
+	            	index = index - 1;
+	                }
+	    	    }
+		    }
+        }  
+    
+    @EventHandler (priority = EventPriority.LOW)
+    public void blockExplodeEventHandler (BlockExplodeEvent event) {
+		if (protection > 0) {
+			if (queryProtectedLocation(event.getBlock().getLocation())) {
+	   		    event.setCancelled(true);
+			    }
+		    }
+        }  	
+    
+    @EventHandler (priority = EventPriority.LOW) 
+    public void blockDamageEventHandler (BlockDamageEvent event) {
+    	if ((protection > 1) && (building == false)) {
+    		Block block = event.getBlock();
+    		if (queryProtectedLocation(block.getLocation())) {
+    			if ((block.getType().hasGravity() || (block.getType() == Material.MINECART))) {
+    				return;
+    			    }
+    			else {
+    				Player player = event.getPlayer();
+    				if (player.isOp()) {
+    					if (opStick(player)) {
+    						return;
+    					    }
+    					else {
+    					    event.getPlayer().sendMessage("<SUBWAY> You must be weilding your OP Stick to work on the railroad. ");
+    		    		    event.setCancelled(true);
+    					    }
+    				    }
+    				else {
+    				    event.getPlayer().sendMessage("<SUBWAY> The subway is protected from griefing. ");
+    	    		    event.setCancelled(true);
+    				    }
+    			    }
+    		    }
+    	    }
+   	    }   
+
+    @EventHandler (priority = EventPriority.LOW)
+    public void blockSpreadEventHandler (BlockSpreadEvent event) {
+    	if ((protection > 1) && (building == false)) {
+            if (queryProtectedLocation(event.getBlock().getLocation())) {
+            	if (event.getBlock().getType() == Material.WATER) {
+       	     		event.setCancelled(true);  
+            	    }
+            	else if (event.getBlock().getType() == Material.LAVA) {
+       	     		event.setCancelled(true);  
+            	    }
+            	event.setCancelled(true);
+                }
+    	    }
+        }
+ 
+    @EventHandler (priority = EventPriority.LOW) 
+    public void blockIgniteEventHandler (BlockIgniteEvent event) {    	
 		if (queryProtectedLocation(event.getBlock().getLocation())) {
    		    event.setCancelled(true);
 		    }
@@ -3189,134 +3306,108 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
     
     @EventHandler (priority = EventPriority.LOW)
     public void creatureSpawnEventHandler (CreatureSpawnEvent event) {
-		if (queryProtectedLocation(event.getLocation())) {
-        	if (event.getEntity() instanceof Monster) {
-        	 	event.setCancelled(true);  
-        	    }
-        	else if (event.getEntity().hasAI()) {
-        		event.setCancelled(true);  
-        	    }
-		    }    	
+    	if ((protection > 1) && (building == false)) {
+    		if (queryProtectedLocation(event.getLocation())) {
+            	if (event.getEntity() instanceof Monster) {
+            	 	event.setCancelled(true);  
+            	    }
+            	else if (event.getEntity().hasAI()) {
+            		event.setCancelled(true);  
+            	    }
+    		    }    	
+    	    }
         }
 
     @EventHandler (priority = EventPriority.LOW)
     public void entityDamageByEntityEventHandler (EntityDamageByEntityEvent event) {
-		if (queryProtectedLocation(event.getEntity().getLocation())) {
-			if (event.getDamager() != null) {
-				if (event.getDamager() instanceof Player) {
-					Player player1 = (Player) event.getDamager();
-					if (event.getEntity() != null) {
-						if (event.getEntity() instanceof Player) {
-							Player player2 = (Player) event.getEntity();
-							player1.sendMessage("<SUBWAY> No fighting in the subway! ");
-							player2.sendMessage("<SUBWAY> No fighting in the subway! ");
-							event.setCancelled(true);
-	   				        }
-					    }
-				    }
-				else {
-					event.getDamager().remove();
-				    }					
-   			    }
-   		    }    		
+    	if ((protection > 1) && (building == false)) {
+    		if (queryProtectedLocation(event.getEntity().getLocation())) {
+    			if (event.getDamager() != null) {
+    				if (event.getDamager() instanceof Player) {
+    					Player player1 = (Player) event.getDamager();
+    					if (event.getEntity() != null) {
+    						if (event.getEntity() instanceof Player) {
+    							Player player2 = (Player) event.getEntity();
+    							player1.sendMessage("<SUBWAY> No fighting in the subway! ");
+    							player2.sendMessage("<SUBWAY> No fighting in the subway! ");
+    							event.setCancelled(true);
+    	   				        }
+    					    }
+    				    }
+    				else {
+    					event.getDamager().remove();
+    				    }					
+       			    }
+       		    }    		
+    	    }
    		}
         
     @EventHandler (priority = EventPriority.LOW)
-    public void entityExplodeEventHandler (EntityExplodeEvent event) {
-    	if (event.isCancelled() == false) {
-            List<Block> blocks = event.blockList();
-            Block block = null;
-            Location location = null; 
-            int index = blocks.size() - 1;
-            while (index >= 0) {        	
-            	block = blocks.get(index);
-            	location = block.getLocation();
-            	if (queryProtectedLocation(location)) {
-            		blocks.remove(index); 
+    public void entityShootBowEventHandler (EntityShootBowEvent event) {
+    	if ((protection > 1) && (building == false)) {
+        	if (queryProtectedLocation(event.getEntity().getLocation())) {
+            	if (event.getEntity() instanceof Player) {
+        			Player player = (Player) event.getEntity();
+        			player.sendMessage("<SUBWAY> No fighting in the subway! ");
             	    }
-            	index = index - 1;
+            	event.setCancelled(true);
                 }
     	    }
-        }  
-    
-    @EventHandler (priority = EventPriority.LOW)
-    public void entityShootBowEventHandler (EntityShootBowEvent event) {
-    	if (queryProtectedLocation(event.getEntity().getLocation())) {
-        	if (event.getEntity() instanceof Player) {
-    			Player player = (Player) event.getEntity();
-    			player.sendMessage("<SUBWAY> No fighting in the subway! ");
-        	    }
-        	event.setCancelled(true);
-            }
         }
     
     @EventHandler (priority = EventPriority.LOW)
     public void explosionPrimeEventHandler (ExplosionPrimeEvent event) {
-    	if (queryProtectedLocation(event.getEntity().getLocation())) {
-    		if (event.getEntity() instanceof Player) {
-    			Player player = (Player) event.getEntity();
-    			player.sendMessage("<SUBWAY> No terrorism in the subway! ");
-        	    }
-       		event.setCancelled(true);  
-            }
+    	if ((protection > 1) && (building == false)) {
+        	if (queryProtectedLocation(event.getEntity().getLocation())) {
+        		if (event.getEntity() instanceof Player) {
+        			Player player = (Player) event.getEntity();
+        			player.sendMessage("<SUBWAY> No terrorism in the subway! ");
+            	    }
+           		event.setCancelled(true);  
+                }
+    	    }
         }
     
     @EventHandler (priority = EventPriority.LOW) 
     public void hangingPlaceEventHandler (HangingPlaceEvent event) {
-    	if (queryProtectedLocation(event.getEntity().getLocation())) {
-    		Player player = event.getPlayer();
-			player.sendMessage("<SUBWAY> You can't hang that in the subway! ");
-			event.setCancelled(true);      		
+    	if ((protection > 1) && (building == false)) {
+        	if (queryProtectedLocation(event.getEntity().getLocation())) {
+        		Player player = event.getPlayer();
+    			player.sendMessage("<SUBWAY> You can't hang that in the subway! ");
+    			event.setCancelled(true);      		
+        	    }
     	    }
 	    }   
         
     @EventHandler (priority = EventPriority.LOW)
     public void lightningStrikeEventHandler (LightningStrikeEvent event) {
-    	if (queryProtectedLocation(event.getLightning().getLocation())) {
-       		event.setCancelled(true);  
-            }
+    	if ((protection > 1) && (building == false)) {
+        	if (queryProtectedLocation(event.getLightning().getLocation())) {
+           		event.setCancelled(true);  
+                }
+    	    }
         }
-    
-    @EventHandler (priority = EventPriority.LOW) 
-    public void playerBucketEmptyEventHandler (PlayerBucketEmptyEvent event) {
-    	if (queryProtectedLocation(event.getBlockClicked().getLocation())) {
-    		Player player = event.getPlayer();
-    		player.sendMessage("<SUBWAY> You can't empty that bucket in the subway! ");  
-		    event.setCancelled(true);
-        	}
-	    }
-    
+   
     @EventHandler (priority = EventPriority.LOW)
     public void potionSplashHanler (PotionSplashEvent event) {
-		Collection<LivingEntity> livingEntities = event.getAffectedEntities();
-		Player player = null;
-		if (livingEntities.isEmpty() == false) {
-			LivingEntity entity[] = livingEntities.toArray(new LivingEntity[livingEntities.size()]);
-			int entityIndex = 0;
-		    while (entityIndex < entity.length) {
-		    	if (entity[entityIndex] instanceof Player) {
-		    		player = (Player) entity[entityIndex];
-		    		if (queryProtectedLocation(player.getLocation())) {
-		    			entity[entityIndex].remove();   
-    				    }
-		    	    }
-		    	entityIndex = entityIndex + 1;
-		        }
-		    }		
+    	if ((protection > 1) && (building == false)) {
+    		Collection<LivingEntity> livingEntities = event.getAffectedEntities();
+    		Player player = null;
+    		if (livingEntities.isEmpty() == false) {
+    			LivingEntity entity[] = livingEntities.toArray(new LivingEntity[livingEntities.size()]);
+    			int entityIndex = 0;
+    		    while (entityIndex < entity.length) {
+    		    	if (entity[entityIndex] instanceof Player) {
+    		    		player = (Player) entity[entityIndex];
+    		    		if (queryProtectedLocation(player.getLocation())) {
+    		    			entity[entityIndex].remove();   
+        				    }
+    		    	    }
+    		    	entityIndex = entityIndex + 1;
+    		        }
+    		    }		
+    	    }    	
         }    
-    
-    @EventHandler (priority = EventPriority.LOW)
-    public void blockSpreadEventHandler (BlockSpreadEvent event) {
-        if (queryProtectedLocation(event.getBlock().getLocation())) {
-        	if (event.getBlock().getType() == Material.WATER) {
-   	     		event.setCancelled(true);  
-        	    }
-        	else if (event.getBlock().getType() == Material.LAVA) {
-   	     		event.setCancelled(true);  
-        	    }
-        	event.setCancelled(true);
-            }
-        }
     
     @EventHandler (priority = EventPriority.LOW)
     public void playerInteractHandler (PlayerInteractEvent event) {
@@ -3379,20 +3470,22 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
     			    	    }
     				    }    		    		
     	    	    }
-    	        }
+    	        } 
     		else if (queryProtectedLocation(clickedBlock.getLocation())) {
-    			if (player.isOp()) {
-    				if (opStick(player)) {
-    					return;
-    				    }
-    				else {
-    				    event.getPlayer().sendMessage("<SUBWAY> You must be weilding your OP Stick to work on the railroad. ");
-    				    event.setCancelled(true);
-    				    }
-    			    }
-    			else {
-    			    event.getPlayer().sendMessage("<SUBWAY> The subway is protected from griefing. ");
-    			    event.setCancelled(true);
+    			if (protection > 0) {
+        			if (player.isOp()) {
+        				if (opStick(player)) {
+        					return;
+        				    }
+        				else {
+        				    event.getPlayer().sendMessage("<SUBWAY> You must be weilding your OP Stick to work on the railroad. ");
+        				    event.setCancelled(true);
+        				    }
+        			    }
+        			else {
+        			    event.getPlayer().sendMessage("<SUBWAY> The subway is protected from griefing. ");
+        			    event.setCancelled(true);
+        			    }
     			    }
                 }
 		    }		
@@ -3953,6 +4046,8 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
     			invIx = invIx + 1;
     		    }
     	    }
-	    }
+	    }	
+	
+	private void doNothing() { }
 	
     }
