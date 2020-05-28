@@ -331,7 +331,7 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
       	    logger.info("[" + pdfFile.getName() + "] Tunnel Style is not in properties.  Defaulting to IRON.  Bridges will be built with iron, giving them an industrial steelwork look.  ");
       	    }
       	if (fast) {
-      	    logger.info("[" + pdfFile.getName() + "] Fast travel is on.  Minecarts will be teleported through the tunnels at high speed.  ");
+      	    logger.info("[" + pdfFile.getName() + "] Fast travel is on.  Subways will be constructed with command blocks under the tracks to accelerate minecarts through the tunnels at high speed.  ");
       	    }
       	else {
       	    logger.info("[" + pdfFile.getName() + "] Fast travel is off.  Minecarts will travel along the rails at normal game speed.  ");
@@ -390,7 +390,7 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
           	if (isNumeric(props.getProperty("ALIGNMENT"))) {
           		subwayAlignment = toInteger(props.getProperty("ALIGNMENT"));
               	if ((subwayAlignment < 4) || (subwayAlignment > 120)) {
-              		logger.warning("[" + pdfFile.getName() + "] Invalid ALIGNMENT value '" + props.getProperty("ALIGNMENT") + "'.  Using default. ");
+              		logger.warning("[" + pdfFile.getName() + "] Invalid ALIGNMENT value '" + props.getProperty("ALIGNMENT") + "'.  Must be an integer from 4 to 120.  Using default 6. ");
               		subwayAlignment = 6;
               	    }
       	        }
@@ -409,7 +409,7 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
     		    subwayRegion = USA;
     		    }
     		else {
-    			logger.warning("[" + pdfFile.getName() + "] Invalid REGION value '" + props.getProperty("REGION") + "'.  Using default. ");
+    			logger.warning("[" + pdfFile.getName() + "] Invalid REGION value '" + props.getProperty("REGION") + "'.  Must be CANADA or JAPAN or UK or USA.  Using default USA. ");
     			subwayRegion = USA;
     		    }
     	    }
@@ -427,7 +427,7 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
     		    tunnelStyle = WOOD;
     		    }
     		else {
-    			logger.warning("[" + pdfFile.getName() + "] Invalid TUNNEL value '" + props.getProperty("TUNNEL") + "'.  Using default. ");
+    			logger.warning("[" + pdfFile.getName() + "] Invalid TUNNEL value '" + props.getProperty("TUNNEL") + "'.  Must be CONCRETE or STONE or IRON or WOOD.  Using default STONE. ");
     			tunnelStyle = STONE;
     		    }    		
     	    }
@@ -445,7 +445,7 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
     		    bridgeStyle = WOOD;
     		    }
     		else {
-    			logger.warning("[" + pdfFile.getName() + "] Invalid BRIDGE value '" + props.getProperty("BRIDGE") + "'.  Using default. ");
+    			logger.warning("[" + pdfFile.getName() + "] Invalid BRIDGE value '" + props.getProperty("BRIDGE") + "'.  Must be CONCRETE or STONE or IRON or WOOD.  Using default IRON. ");
     			bridgeStyle = IRON;
     		    }
 		    }
@@ -457,7 +457,7 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
     			fast = false;
     		    }
     		else {
-    			logger.warning("[" + pdfFile.getName() + "] Invalid FAST value '" + props.getProperty("FAST") + "'.  Using default. ");
+    			logger.warning("[" + pdfFile.getName() + "] Invalid FAST value '" + props.getProperty("FAST") + "'.  Must be TRUE or FALSE.  Using default FALSE. ");
     			fast = false;
     		    }
 		    }
@@ -484,7 +484,7 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
     			protection = 2;
     		    }
     		else {
-    			logger.warning("[" + pdfFile.getName() + "] Invalid PROTECT value '" + props.getProperty("PROTECT") + "'.  Using default. ");
+    			logger.warning("[" + pdfFile.getName() + "] Invalid PROTECT value '" + props.getProperty("PROTECT") + "'.  Must be OFF or MIN or MAX.  Using default MIN. ");
     			protection = 1;
 		        }
 		    }
@@ -1211,7 +1211,26 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
 			snapPoint_5 = true;
 		    }
 				
-		/* identify what's in the path of the tunnel before we build it */ 
+		/* identify what's in the path of the tunnel before we build it */
+		
+		// At61 |At62 |At63 |At64 |At65 |At66 |At67
+		//      |     |     |     |     |     |
+		//   ---+-----+-----+-----+-----+-----+---
+		// At51 |At52 |At53 |At54 |At55 |At56 |At57
+		//      | 2,-2| 2,-1| 2, 0| 2, 1| 2, 2|
+		//   ---+-----+-----+-----+-----+-----+---
+		// At41 |At42 |       | |       |At46 |At47
+		//      | 1,-2|       | |       | 1, 2|
+		//   ---+-----+       +-+       +-----+---
+		// At31 |AT32 |       | |       |At36 |At37
+		//      | 0,-2| ===   | |   === | 0, 2|		
+		//   ---+-----+-----+-----+-----+-----+---
+		// At21 |At22 |At23 |At24 |At25 |At26 |At27
+		//      |-1,-2|-1,-1|-1, 0|-1, 1|-1, 2|
+		//   ---+-----+-----+-----+-----+-----+---
+		// At11 |At12 |At13 |At14 |At15 |At16 |At17
+		//      |     |     |     |     |     |
+		
 		Material whatsAt11 = getBlockType(subwayDistance,-2,-3);
 		Material whatsAt12 = getBlockType(subwayDistance,-2,-2);
 		Material whatsAt13 = getBlockType(subwayDistance,-2,-1);
@@ -1259,18 +1278,6 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
 		Material whatsAt65 = getBlockType(subwayDistance, 3, 1);
 		Material whatsAt66 = getBlockType(subwayDistance, 3, 2);
 		//Material whatsAt67 = getBlockType(subwayDistance, 3, 3);	
-
-		/* clear and illuminate ahead of tunnel */
-		/*
-		changeBlockType((subwayDistance + 1), 1,-1,Material.AIR);
-		changeBlockType((subwayDistance + 1), 1, 0,Material.AIR);
-		changeBlockType((subwayDistance + 1), 1, 1,Material.AIR);
-		changeBlockType((subwayDistance + 1), 0,-1,Material.ORANGE_CONCRETE);
-		changeBlockType((subwayDistance + 1), 0, 0,Material.ORANGE_CONCRETE);
-		changeBlockType((subwayDistance + 1), 0, 1,Material.ORANGE_CONCRETE);
-		changeBlockType((subwayDistance + 1), 1,-1,Material.TORCH);
-		changeBlockType((subwayDistance + 1), 1, 1,Material.TORCH);
-		/* */
 		
 		/* clear center of tunnel */
 		changeBlockType(subwayDistance, 1,-1,Material.AIR);
@@ -1281,10 +1288,26 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
 		changeBlockType(subwayDistance, 0, 1,Material.AIR);
 		
 		/* determine whether we are underground, above ground, or under water */
+
+		//      |     |     |     |     |     |
+		//   ---+-----+-----+-----+-----+-----+---
+		//      |     |     |     |     |     |
+		//      |     |     |     |     |     |
+		//   ---+-----+-----+-----+-----+-----+---
+		//      |     |       | |       |     |
+		//      |     |       | |       |     |
+		//   ---+-----+       +-+       +-----+---
+		//      |     |       | |       |     |
+		//      |     | ===   | |   === |     |		
+		//   ---+-----+-----+-----+-----+-----+---
+		//      |At22 |     |     |     |     |
+		//      |-1,-2|     |     |     |     |
+		//   ---+-----+-----+-----+-----+-----+---
+		//      |     |     |     |     |     |
 		if (whatsAt21 == Material.IRON_BLOCK) {
 			changeBlockType(subwayDistance,-1,-2,Material.IRON_BLOCK);
-		    }
-		else if ((solidBlock(whatsAt12)) || (liquidBlock(whatsAt22))) {        
+		    }   
+		else if ((solidBlock(whatsAt12)) || (liquidBlock(whatsAt12)) || (liquidBlock(whatsAt22))) {	
 			if (tunnelStyle == CONCRETE) {
 				changeBlockType(subwayDistance,-1,-2,Material.GRAY_CONCRETE);
 			    }
@@ -1328,10 +1351,25 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
 			    }
 		    }
 
+		//      |     |     |     |     |     |
+		//   ---+-----+-----+-----+-----+-----+---
+		//      |     |     |     |     |     |
+		//      |     |     |     |     |     |
+		//   ---+-----+-----+-----+-----+-----+---
+		//      |     |       | |       |     |
+		//      |     |       | |       |     |
+		//   ---+-----+       +-+       +-----+---
+		//      |     |       | |       |     |
+		//      |     | ===   | |   === |     |		
+		//   ---+-----+-----+-----+-----+-----+---
+		//      |     |     |At24 |     |     |
+		//      |     |     |-1, 0|     |     |
+		//   ---+-----+-----+-----+-----+-----+---
+		//      |     |     |     |     |     |
 		if ((whatsAt21 == Material.IRON_BLOCK) || (whatsAt27 == Material.IRON_BLOCK)) {
 			changeBlockType(subwayDistance,-1, 0,Material.IRON_BLOCK);
 		    }		
-		else if ((solidBlock(whatsAt14)) || (liquidBlock(whatsAt24))) {    
+		else if ((solidBlock(whatsAt14)) || (liquidBlock(whatsAt14)) || (liquidBlock(whatsAt24))) {    
 			if (tunnelStyle == CONCRETE) {
 				changeBlockType(subwayDistance,-1, 0,Material.GRAY_CONCRETE);
 			    }
@@ -1365,10 +1403,25 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
 			    }
 		    }
 
+		//      |     |     |     |     |     |
+		//   ---+-----+-----+-----+-----+-----+---
+		//      |     |     |     |     |     |
+		//      |     |     |     |     |     |
+		//   ---+-----+-----+-----+-----+-----+---
+		//      |     |       | |       |     |
+		//      |     |       | |       |     |
+		//   ---+-----+       +-+       +-----+---
+		//      |     |       | |       |     |
+		//      |     | ===   | |   === |     |		
+		//   ---+-----+-----+-----+-----+-----+---
+		//      |     |     |     |     |At26 |
+		//      |     |     |     |     |-1, 2|
+		//   ---+-----+-----+-----+-----+-----+---
+		//      |     |     |     |     |     |
 		if (whatsAt27 == Material.IRON_BLOCK) {
 			changeBlockType(subwayDistance,-1, 2,Material.IRON_BLOCK);
-		    }
-		else if ((solidBlock(whatsAt16)) || (liquidBlock(whatsAt26))) {    
+		    }  
+		else if ((solidBlock(whatsAt16)) || (liquidBlock(whatsAt16)) || (liquidBlock(whatsAt26))) {
 			if (tunnelStyle == CONCRETE) {
 				changeBlockType(subwayDistance,-1, 2,Material.GRAY_CONCRETE);
 			    }
@@ -1411,7 +1464,22 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
 				changeBlockType(subwayDistance,-1, 2,Material.STONE_BRICKS);
 			    }
 		    }
-
+		
+		//      |     |     |     |     |     |
+		//   ---+-----+-----+-----+-----+-----+---
+		//      |     |     |     |     |     |
+		//      |     |     |     |     |     |
+		//   ---+-----+-----+-----+-----+-----+---
+		//      |     |       | |       |     |
+		//      |     |       | |       |     |
+		//   ---+-----+       +-+       +-----+---
+		//      |At32 |       | |       |     |
+		//      | 0,-2| ===   | |   === |     |		
+		//   ---+-----+-----+-----+-----+-----+---
+		//      |     |     |     |     |     |
+		//      |     |     |     |     |     |
+		//   ---+-----+-----+-----+-----+-----+---
+		//      |     |     |     |     |     |
 		if (railBlock(whatsAt31)) {
 			changeBlockType(subwayDistance, 0,-2,Material.AIR);			
 		    }
@@ -1478,6 +1546,21 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
 			changeBlockType(subwayDistance, 0,-2,Material.IRON_BARS);
 		    }
 		
+		//      |     |     |     |     |     |
+		//   ---+-----+-----+-----+-----+-----+---
+		//      |     |     |     |     |     |
+		//      |     |     |     |     |     |
+		//   ---+-----+-----+-----+-----+-----+---
+		//      |     |       | |       |     |
+		//      |     |       | |       |     |
+		//   ---+-----+       +-+       +-----+---
+		//      |     |       | |       |At36 |
+		//      |     | ===   | |   === | 0, 2|		
+		//   ---+-----+-----+-----+-----+-----+---
+		//      |     |     |     |     |     |
+		//      |     |     |     |     |     |
+		//   ---+-----+-----+-----+-----+-----+---
+		//      |     |     |     |     |     |
 		if (railBlock(whatsAt37)) {
 			changeBlockType(subwayDistance, 0, 2,Material.AIR);
 		    }
@@ -1544,6 +1627,21 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
 			changeBlockType(subwayDistance, 0, 2,Material.IRON_BARS);
 		    }
 
+		//      |     |     |     |     |     |
+		//   ---+-----+-----+-----+-----+-----+---
+		//      |     |     |     |     |     |
+		//      |     |     |     |     |     |
+		//   ---+-----+-----+-----+-----+-----+---
+		//      |At42 |       | |       |     |
+		//      | 1,-2|       | |       |     |
+		//   ---+-----+       +-+       +-----+---
+		//      |     |       | |       |     |
+		//      |     | ===   | |   === |     |		
+		//   ---+-----+-----+-----+-----+-----+---
+		//      |     |     |     |     |     |
+		//      |     |     |     |     |     |
+		//   ---+-----+-----+-----+-----+-----+---
+		//      |     |     |     |     |     |
 		if (solidBlock(whatsAt41)) {
 			if (tunnelStyle == CONCRETE) {
 				changeBlockType(subwayDistance, 1,-2,Material.GRAY_CONCRETE);
@@ -1579,7 +1677,22 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
 				changeBlockType(subwayDistance, 1,-2,Material.AIR);
 			    }
 		    }
-
+		
+		//      |     |     |     |     |     |
+		//   ---+-----+-----+-----+-----+-----+---
+		//      |     |     |     |     |     |
+		//      |     |     |     |     |     |
+		//   ---+-----+-----+-----+-----+-----+---
+		//      |     |       | |       |At46 |
+		//      |     |       | |       | 1, 2|
+		//   ---+-----+       +-+       +-----+---
+		//      |     |       | |       |     |
+		//      |     | ===   | |   === |     |		
+		//   ---+-----+-----+-----+-----+-----+---
+		//      |     |     |     |     |     |
+		//      |     |     |     |     |     |
+		//   ---+-----+-----+-----+-----+-----+---
+		//      |     |     |     |     |     |
 		if (solidBlock(whatsAt47))  {
 			if (tunnelStyle == CONCRETE) {
 				changeBlockType(subwayDistance, 1, 2,Material.GRAY_CONCRETE);
@@ -1616,6 +1729,21 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
 			    }
 		    }
 		
+		//      |     |     |     |     |     |
+		//   ---+-----+-----+-----+-----+-----+---
+		//      |At52 |     |     |     |     |
+		//      | 2,-2|     |     |     |     |
+		//   ---+-----+-----+-----+-----+-----+---
+		//      |     |       | |       |     |
+		//      |     |       | |       |     |
+		//   ---+-----+       +-+       +-----+---
+		//      |     |       | |       |     |
+		//      |     | ===   | |   === |     |		
+		//   ---+-----+-----+-----+-----+-----+---
+		//      |     |     |     |     |     |
+		//      |     |     |     |     |     |
+		//   ---+-----+-----+-----+-----+-----+---
+		//      |     |     |     |     |     |
 		if (whatsAt52 == Material.GLASS) {
 			changeBlockType(subwayDistance, 2,-2,Material.GLASS);
 		    }
@@ -1647,6 +1775,21 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
 		    changeBlockType(subwayDistance, 2,-2,Material.AIR);
 			}
 
+		//      |     |     |     |     |     |
+		//   ---+-----+-----+-----+-----+-----+---
+		//      |     |At53 |     |     |     |
+		//      |     | 2,-1|     |     |     |
+		//   ---+-----+-----+-----+-----+-----+---
+		//      |     |       | |       |     |
+		//      |     |       | |       |     |
+		//   ---+-----+       +-+       +-----+---
+		//      |     |       | |       |     |
+		//      |     | ===   | |   === |     |		
+		//   ---+-----+-----+-----+-----+-----+---
+		//      |     |     |     |     |     |
+		//      |     |     |     |     |     |
+		//   ---+-----+-----+-----+-----+-----+---
+		//      |     |     |     |     |     |
 		if (solidBlock(whatsAt63)) {
 			if (tunnelStyle == CONCRETE) {
 				changeBlockType(subwayDistance, 2,-1,Material.GRAY_CONCRETE);
@@ -1680,6 +1823,21 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
 			changeBlockType(subwayDistance, 2,-1,Material.AIR);
 			}
 
+		//      |     |     |     |     |     |
+		//   ---+-----+-----+-----+-----+-----+---
+		//      |     |     |At54 |     |     |
+		//      |     |     | 2, 0|     |     |
+		//   ---+-----+-----+-----+-----+-----+---
+		//      |     |       | |       |     |
+		//      |     |       | |       |     |
+		//   ---+-----+       +-+       +-----+---
+		//      |     |       | |       |     |
+		//      |     | ===   | |   === |     |		
+		//   ---+-----+-----+-----+-----+-----+---
+		//      |     |     |     |     |     |
+		//      |     |     |     |     |     |
+		//   ---+-----+-----+-----+-----+-----+---
+		//      |     |     |     |     |     |
 		if (solidBlock(whatsAt64)) {
 			if (tunnelStyle == CONCRETE) {
 				changeBlockType(subwayDistance, 2, 0,Material.GRAY_CONCRETE);
@@ -1746,6 +1904,21 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
 			changeBlockType(subwayDistance, 2, 0,Material.AIR);
 			}
 
+		//      |     |     |     |     |     |
+		//   ---+-----+-----+-----+-----+-----+---
+		//      |     |     |     |At55 |     |
+		//      |     |     |     | 2, 1|     |
+		//   ---+-----+-----+-----+-----+-----+---
+		//      |     |       | |       |     |
+		//      |     |       | |       |     |
+		//   ---+-----+       +-+       +-----+---
+		//      |     |       | |       |     |
+		//      |     | ===   | |   === |     |		
+		//   ---+-----+-----+-----+-----+-----+---
+		//      |     |     |     |     |     |
+		//      |     |     |     |     |     |
+		//   ---+-----+-----+-----+-----+-----+---
+		//      |     |     |     |     |     |
 		if (solidBlock(whatsAt65)) {
 			if (tunnelStyle == CONCRETE) {
 				changeBlockType(subwayDistance, 2, 1,Material.GRAY_CONCRETE);
@@ -1779,6 +1952,21 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
 			changeBlockType(subwayDistance, 2, 1,Material.AIR);
 			}		
 		
+		//      |     |     |     |     |     |
+		//   ---+-----+-----+-----+-----+-----+---
+		//      |     |     |     |     |At56 |
+		//      |     |     |     |     | 2, 2|
+		//   ---+-----+-----+-----+-----+-----+---
+		//      |     |       | |       |     |
+		//      |     |       | |       |     |
+		//   ---+-----+       +-+       +-----+---
+		//      |     |       | |       |     |
+		//      |     | ===   | |   === |     |		
+		//   ---+-----+-----+-----+-----+-----+---
+		//      |     |     |     |     |     |
+		//      |     |     |     |     |     |
+		//   ---+-----+-----+-----+-----+-----+---
+		//      |     |     |     |     |     |
 		if  (whatsAt56 == Material.GLASS) {
 			changeBlockType(subwayDistance, 2, 2,Material.GLASS);
 		    }
@@ -1810,6 +1998,21 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
 		    changeBlockType(subwayDistance, 2, 2,Material.AIR);
 			}
 			
+		//      |     |     |     |     |     |
+		//   ---+-----+-----+-----+-----+-----+---
+		//      |     |     |     |     |     |
+		//      |     |     |     |     |     |
+		//   ---+-----+-----+-----+-----+-----+---
+		//      |     |       | |       |     |
+		//      |     |       | |       |     |
+		//   ---+-----+       +-+       +-----+---
+		//      |     |       | |       |     |
+		//      |     | ===   | |   === |     |		
+		//   ---+-----+-----+-----+-----+-----+---
+		//      |     |At23 |     |     |     |
+		//      |     |-1,-1|     |     |     |
+		//   ---+-----+-----+-----+-----+-----+---
+		//      |     |     |     |     |     |
 		if ((solidBlock(whatsAt13)) || (liquidBlock(whatsAt23))) {        
 			if (tunnelStyle == CONCRETE) {
 				changeBlockType(subwayDistance,-1,-1,Material.GRAY_CONCRETE);
@@ -1844,6 +2047,21 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
 			    }
 		    }
 
+		//      |     |     |     |     |     |
+		//   ---+-----+-----+-----+-----+-----+---
+		//      |     |     |     |     |     |
+		//      |     |     |     |     |     |
+		//   ---+-----+-----+-----+-----+-----+---
+		//      |     |       | |       |     |
+		//      |     |       | |       |     |
+		//   ---+-----+       +-+       +-----+---
+		//      |     |       | |       |     |
+		//      |     | ===   | |   === |     |		
+		//   ---+-----+-----+-----+-----+-----+---
+		//      |     |     |     |At25 |     |
+		//      |     |     |     |-1, 1|     |
+		//   ---+-----+-----+-----+-----+-----+---
+		//      |     |     |     |     |     |
 		if ((solidBlock(whatsAt15)) || (liquidBlock(whatsAt25))) {            
 			if (tunnelStyle == CONCRETE) {
 				changeBlockType(subwayDistance,-1, 1,Material.GRAY_CONCRETE);
@@ -2330,11 +2548,6 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
 					else if (liquidBlock(thingy)) {
 						climbing = false;
 					    }
-					/*
-					else if (thingy == Material.LAVA) {
-						climbing = false;
-					    }
-					/* */
 				    }			
 				height = height + 1;
 			    }
@@ -2867,9 +3080,15 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
 	
 	private boolean solidBlock(Material material) {
 		boolean yesNo = false;
-		if ((material.isSolid()) && (plantMatter(material) == false)) {
+		if (airBlock(material)) {
+			yesNo = false;
+		    }
+		else if (liquidBlock(material)) {
+			yesNo = false;
+		    }
+		else if (material.isSolid()) {
 			yesNo = true;
-		    }		
+		    }				
 		return (yesNo);
 	    }
 	
