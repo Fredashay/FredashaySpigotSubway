@@ -132,7 +132,10 @@
  * 
  *     Water is also a problem.  Sometimes a subway will intersect some water and the water will start 
  * flowing after the plugin removed the existing block but before it placed the tracks.  That may 
- * result in some water flowing onto the tracks. 
+ * result in some water flowing onto the tracks.  I tried using an event to test for water flowing, 
+ * but water flows all over creation in a Minecraft world, and having an event to trace water in
+ * the subway tunnel back to the source block brought the server to its knees.  So you may have to
+ * do some occasional repairs where water flows onto your tracks while it's being built.  
  * 
  *     Sometimes, the subway will disturb loose sand above.  Since sand falls in slow motion relative
  * to game ticks, it will land on the subway after that slice has been built and the plugin has moved
@@ -177,8 +180,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 
+import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
 import org.bukkit.block.CommandBlock;
@@ -243,14 +248,14 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
 	private static Player buildPlayer = null;
 	private static boolean building = false; 
 	private static int subwayAlignment = 6;
-	private static int subwayX = 0;
+	private static long subwayX = 0;
 	private static int subwayY = 0;
-	private static int subwayZ = 0;
-	private static int distanceStart = 0;
-	private static int centerStart = 0;
+	private static long subwayZ = 0;
+	private static long distanceStart = 0;
+	private static long centerStart = 0;
 	private static char subwayDirection = ' ';
-	private static int subwayLength = 0;
-	private static int subwayDistance = 0;
+	private static long subwayLength = 0;
+	private static long subwayDistance = 0;
 	private static int subwayComplete = 0;
 	private static char subwayRegion = USA;
 	private static char tunnelStyle = STONE;
@@ -651,7 +656,7 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
 	            		    		error = true;
 	            		    	    }
 	            		    	else {
-	            		    		subwayX = toInteger(argValue);
+	            		    		subwayX = toLong(argValue);
 	            		    		if (subwayX < 1) {
 	            		    			player.sendMessage("<SUBWAY> X must be '~' or a positive integer. ");
 	            		    			subwayX = player.getLocation().getBlockX();
@@ -700,7 +705,7 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
 	            		    		error = true;
 	            		    	    }
 	            		    	else {
-	            		    		subwayZ = toInteger(argValue);
+	            		    		subwayZ = toLong(argValue);
 	            		    		if (subwayZ < 1) {
 	            		    			player.sendMessage("<SUBWAY> Z must be '~' or a positive integer. ");
 	            		    			subwayZ = player.getLocation().getBlockZ();		            		    			 
@@ -958,7 +963,21 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
 	        number = Integer.parseInt(string.trim());
 	        }
 	    catch (NumberFormatException oops) {
-	    	logger.warning("[" + pdfFile.getName() + "] I tried to convert '" + string + "' to a number; it didn't end well.  ");
+	    	logger.warning("[" + pdfFile.getName() + "] I tried to convert '" + string + "' to an integer number; it didn't end well.  ");
+	    	logger.warning("[" + pdfFile.getName() + "] " + oops.getMessage());
+			oops.printStackTrace(System.err);
+			number = 0;
+	        }
+		return (number);		
+	    }
+	
+	private long toLong(String string) {
+		long number = 0;
+		try {
+	        number = Long.parseLong(string.trim());
+	        }
+	    catch (NumberFormatException oops) {
+	    	logger.warning("[" + pdfFile.getName() + "] I tried to convert '" + string + "' to a long number; it didn't end well.  ");
 	    	logger.warning("[" + pdfFile.getName() + "] " + oops.getMessage());
 			oops.printStackTrace(System.err);
 			number = 0;
@@ -1125,7 +1144,35 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
        	    sqlClose(connection);
        	    }
     	return (protect);
-        }	
+        }
+    
+    private boolean isProtected(Location location) {    	
+    	World world = location.getWorld();
+    	Block block = world.getBlockAt(location);
+    	long locX = block.getX(); 
+    	int locY = block.getY();
+    	long locZ = block.getZ();    	
+    	boolean protect = false;
+    	long loopX = locX - 1;
+    	while (loopX <= (locX + 1)) {
+    		int loopY = locY - 2;
+        	while (loopY <= (locY + 1)) {
+            	long loopZ = locZ - 1;
+        		while (loopZ <= (locZ + 1)) {
+        			block =  world.getBlockAt((int)loopX,loopY,(int)loopZ);        			        	    	        			
+        			if ((block.getType() == Material.RAIL) || (block.getType() == Material.POWERED_RAIL) || (block.getType() == Material.DETECTOR_RAIL) || (block.getType() == Material.ACTIVATOR_RAIL)) {
+                		if (queryProtectedLocation(block.getLocation())) {                			                			
+                			return (true);            			
+                		    }
+        			    }
+            		loopZ = loopZ + 1;
+            	    }
+        		loopY = loopY + 1;
+        	    }
+    		loopX = loopX + 1;
+    	    }
+    	return (protect);
+        }
     
 	private void onTick() {
 		if (building) {
@@ -1164,7 +1211,7 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
 	    }
 	
 	private void buildSubwaySlice() {
-		int actualDistance = absoluteDistance(subwayDistance);
+		long actualDistance = absoluteDistance(subwayDistance);
 		boolean snapPoint = false;
 		boolean snapPoint_1 = false;
 		boolean snapPoint_2 = false;
@@ -2590,7 +2637,7 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
 		    if (snapPoint) {
 		    	column = -1;								
 				while (column <= 1) {
-					if (buildPlayer.getWorld().getBlockAt(absoluteX(subwayDistance,column),1,absoluteZ(subwayDistance,column)).getType() != Material.AIR) {						
+					if (buildPlayer.getWorld().getBlockAt((int)absoluteX(subwayDistance,column),1,(int)absoluteZ(subwayDistance,column)).getType() != Material.AIR) {						
 						sinking = true;
 						height = -2;
 						while (sinking) {
@@ -2639,7 +2686,7 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
 		    if (snapPoint || snapPoint_1) {
 		    	column = -2;								
 				while (column <= 2) {
-					if (buildPlayer.getWorld().getBlockAt(absoluteX(subwayDistance,column),1,absoluteZ(subwayDistance,column)).getType() != Material.AIR) {						
+					if (buildPlayer.getWorld().getBlockAt((int)absoluteX(subwayDistance,column),1,(int)absoluteZ(subwayDistance,column)).getType() != Material.AIR) {						
 						if ((column == -2) || (column == -1) ||  (column == 2) || (column == 1)) {
 							sinking = true;
 							height = -2;
@@ -2691,7 +2738,7 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
 		    if (snapPoint || snapPoint_1) {
 		    	column = -2;								
 				while (column <= 2) {
-					if (buildPlayer.getWorld().getBlockAt(absoluteX(subwayDistance,column),1,absoluteZ(subwayDistance,column)).getType() != Material.AIR) {					
+					if (buildPlayer.getWorld().getBlockAt((int)absoluteX(subwayDistance,column),1,(int)absoluteZ(subwayDistance,column)).getType() != Material.AIR) {					
 						sinking = true;
 						height = -2;
 						while (sinking) {
@@ -2736,7 +2783,7 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
 		    else if (snapPoint_2) {
 		    	column = -2;								
 				while (column <= 2) {
-					if (buildPlayer.getWorld().getBlockAt(absoluteX(subwayDistance,column),1,absoluteZ(subwayDistance,column)).getType() != Material.AIR) {						
+					if (buildPlayer.getWorld().getBlockAt((int)absoluteX(subwayDistance,column),1,(int)absoluteZ(subwayDistance,column)).getType() != Material.AIR) {						
 						sinking = true;
 						height = -2;
 						while ((sinking) && (height >= -3)) {
@@ -2942,7 +2989,7 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
 			}		
 	    }
 	
-	private void removeSand(int subwayDistance, int subwayHeight, int subwayColumn) {
+	private void removeSand(long subwayDistance, int subwayHeight, long subwayColumn) {
 		if (getBlockType(subwayDistance,subwayHeight,subwayColumn).hasGravity()) {
 			int newHeight = subwayHeight;
 			boolean climbing = true;
@@ -2976,6 +3023,12 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
 			yesNo = true;
 		    }
 		else if (material == Material.AIR) {
+			yesNo = true;
+		    }
+		else if (material == Material.CAVE_AIR) {
+			yesNo = true;
+		    }
+		else if (material == Material.VOID_AIR) {
 			yesNo = true;
 		    }
 		else if (plantMatter(material)) {
@@ -3244,8 +3297,8 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
 		return (yesNo);
 	    }
 	
-	private int absoluteDistance(int distancePos) {
-		int actual = 0;
+	private long absoluteDistance(long distancePos) {
+		long actual = 0;
 		if (subwayDirection == NORTH) {
 			actual = distanceStart - distancePos; 
 		    }
@@ -3264,8 +3317,8 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
 		return (actual);
 	    }
 	
-	private int absoluteX(int distancePos, int centerPos) {
-		int actualX = 0;
+	private long absoluteX(long distancePos, long centerPos) {
+		long actualX = 0;
 		if (subwayDirection == NORTH) {
 			actualX = centerStart - centerPos;
 		    }
@@ -3289,8 +3342,8 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
 		return(actualY);
 	    }
 	
-	private int absoluteZ(int distancePos, int centerPos) {
-		int actualZ = 0;
+	private long absoluteZ(long distancePos, long centerPos) {
+		long actualZ = 0;
 		if (subwayDirection == NORTH) {
 			actualZ = distanceStart - distancePos;
 		    }
@@ -3309,8 +3362,11 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
 		return(actualZ);
 	    }
 	
-	private void tpPlayer(int distancePos, int altitudePos, int centerPos) {		
+	private void tpPlayer(long distancePos, int altitudePos, long centerPos) {		
 		Location destination = buildPlayer.getLocation();
+		if (buildPlayer.getGameMode() == GameMode.SPECTATOR) {
+			buildPlayer.setGameMode(GameMode.CREATIVE);
+		    }
 		destination.setX(absoluteX(distancePos,centerPos));
 		destination.setY(absoluteY(altitudePos));
 		destination.setZ(absoluteZ(distancePos,centerPos));
@@ -3319,29 +3375,29 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
 		buildPlayer.teleport(destination);
 	    }
 	
-    private Block getBlock(int distancePos, int altitudePos, int centerPos) {
+    private Block getBlock(long distancePos, int altitudePos, long centerPos) {
     	Block block = null;
-		int blockX = absoluteX(distancePos,centerPos);
+		long blockX = absoluteX(distancePos,centerPos);
 		int blockY = absoluteY(altitudePos);
-		int blockZ = absoluteZ(distancePos,centerPos);
-		block = buildPlayer.getWorld().getBlockAt(blockX,blockY,blockZ);
+		long blockZ = absoluteZ(distancePos,centerPos);
+		block = buildPlayer.getWorld().getBlockAt((int)blockX,blockY,(int)blockZ);
     	return (block);
         }
     
-    private Material getBlockType(int distancePos, int altitudePos, int centerPos) {
+    private Material getBlockType(long distancePos, int altitudePos, long centerPos) {
     	Block block = null;
 		block = getBlock(distancePos,altitudePos,centerPos);
     	return (block.getType());
         }
     
-    private void changeBlockType(int distancePos, int altitudePos, int centerPos, Material material) {    	
+    private void changeBlockType(long distancePos, int altitudePos, long centerPos, Material material) {    	
     	Block block = null;
 		block = getBlock(distancePos,altitudePos,centerPos);
 		block.setType(material);
 		insertBlock(block);
         }
     
-    private void clearBlockType(int distancePos, int altitudePos, int centerPos, Material material) {
+    private void clearBlockType(long distancePos, int altitudePos, long centerPos, Material material) {
     	Block block = null;
 		block = getBlock(distancePos,altitudePos,centerPos);
 		block.setType(material);
@@ -3359,19 +3415,49 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
     
     @EventHandler (priority = EventPriority.LOW) 
     public void blockFromToEventHandler (BlockFromToEvent event) {
-		if (queryProtectedLocation(event.getBlock().getLocation())) {
-			event.setCancelled(true);
+		if (event.getToBlock().getType() == Material.CAVE_AIR) {
+			return;
 		    }
-		if (queryProtectedLocation(event.getToBlock().getLocation())) {
-			event.setCancelled(true);
-	        }
-	    }    
+		else if (event.getBlock().getType() == Material.CAVE_AIR) {
+			return;
+		    }
+		else if ((event.getToBlock().getType() == Material.RAIL) || (event.getToBlock().getType() == Material.POWERED_RAIL) || (event.getToBlock().getType() == Material.DETECTOR_RAIL) || (event.getToBlock().getType() == Material.ACTIVATOR_RAIL) || (event.getToBlock().getType() == Material.REDSTONE_TORCH)) {
+			if (isProtected(event.getToBlock().getLocation())) {
+    			event.setCancelled(true);
+    	        }
+		    } 
+	    }
+    
+    /*
+    @EventHandler (priority = EventPriority.LOW) 
+    public void blockFromToEventHandler (BlockFromToEvent event) {
+    	if (building) {
+        	// Block blockFrom = event.getBlock();
+        	// Block blockTo = event.getToBlock();
+        	// logger.info("[" + pdfFile.getName() + "." + event.getEventName() + "] Block '" + blockFrom.getType().toString() + "' at location (" + blockFrom.getWorld().getName() + "," +  blockFrom.getX() + "," + blockFrom.getY() + "," + blockFrom.getZ() + ") flowed to block '" + blockTo.getType().toString() + "' at location (" + blockTo.getWorld().getName() + "," +  blockTo.getX() + "," + blockTo.getY() + "," + blockTo.getZ() + "). ");
+    		if (event.getToBlock().getType() == Material.CAVE_AIR) {
+    			return;
+    		    }
+    		else if (event.getBlock().getType() == Material.CAVE_AIR) {
+    			return;
+    		    }
+    		else if ((event.getToBlock().getType() == Material.RAIL) || (event.getToBlock().getType() == Material.POWERED_RAIL) || (event.getToBlock().getType() == Material.DETECTOR_RAIL) || (event.getToBlock().getType() == Material.ACTIVATOR_RAIL)){
+    			if (isProtected(event.getToBlock().getLocation())) {
+        	    	// logger.info("[" + pdfFile.getName() + "." + event.getEventName() + "] BlockTo is protected so BlockFrom changed to BLACK_STAINED_GLASS.");
+        			// event.getBlock().setType(Material.BLACK_STAINED_GLASS);
+        			event.setCancelled(true);
+        	        }
+    		    } 
+    	    }
+	    }
+    /* */
     
     @EventHandler (priority = EventPriority.LOW) 
     public void blockPlaceEventHandler (BlockPlaceEvent event) {
 		if (protection > 0) {
+			// logger.info("[" + pdfFile.getName() + "." + event.getEventName() + "]");
 			Block block = event.getBlock();
-			if (queryProtectedLocation(block.getLocation())) {
+			if (isProtected(block.getLocation())) {
 				if (block.getType() == Material.MINECART) {
 					return;
 				    }
@@ -3398,8 +3484,9 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
 	@EventHandler (priority = EventPriority.LOW)
     public void blockBreakEventHandler(BlockBreakEvent event) {
 		if (protection > 0) {
+			// logger.info("[" + pdfFile.getName() + "." + event.getEventName() + "]");
 			Block block = event.getBlock();
-			if (queryProtectedLocation(block.getLocation())) {
+			if (isProtected(block.getLocation())) {
 				if ((block.getType().hasGravity() || (block.getType() == Material.MINECART))) {
 					return;
 				    }
@@ -3426,8 +3513,9 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
     @EventHandler (priority = EventPriority.LOW)
     public void entityInteractEventHandler (EntityInteractEvent event) {
 		if (protection > 0) {
+			// logger.info("[" + pdfFile.getName() + "." + event.getEventName() + "]");
 			Block block = event.getBlock();
-			if (queryProtectedLocation(block.getLocation())) {
+			if (isProtected(block.getLocation())) {
 	   			event.setCancelled(true);  
 	            }
 		    }
@@ -3436,7 +3524,8 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
     @EventHandler (priority = EventPriority.LOW) 
     public void playerBucketEmptyEventHandler (PlayerBucketEmptyEvent event) {
 		if (protection > 0) {
-	    	if (queryProtectedLocation(event.getBlockClicked().getLocation())) {
+			// logger.info("[" + pdfFile.getName() + "." + event.getEventName() + "]");
+	    	if (isProtected(event.getBlockClicked().getLocation())) {
 	    		Player player = event.getPlayer();
 	    		player.sendMessage("<SUBWAY> Don't empty that bucket in the subway! ");  
 			    event.setCancelled(true);
@@ -3447,6 +3536,7 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
     @EventHandler (priority = EventPriority.LOW)
     public void entityExplodeEventHandler (EntityExplodeEvent event) {
 		if (protection > 0) {
+			// logger.info("[" + pdfFile.getName() + "." + event.getEventName() + "]");
 	    	if (event.isCancelled() == false) {
 	            List<Block> blocks = event.blockList();
 	            Block block = null;
@@ -3455,7 +3545,7 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
 	            while (index >= 0) {        	
 	            	block = blocks.get(index);
 	            	location = block.getLocation();
-	            	if (queryProtectedLocation(location)) {
+	            	if (isProtected(location)) {
 	            		blocks.remove(index); 
 	            	    }
 	            	index = index - 1;
@@ -3467,7 +3557,8 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
     @EventHandler (priority = EventPriority.LOW)
     public void blockExplodeEventHandler (BlockExplodeEvent event) {
 		if (protection > 0) {
-			if (queryProtectedLocation(event.getBlock().getLocation())) {
+			// logger.info("[" + pdfFile.getName() + "." + event.getEventName() + "]");
+			if (isProtected(event.getBlock().getLocation())) {
 	   		    event.setCancelled(true);
 			    }
 		    }
@@ -3476,8 +3567,9 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
     @EventHandler (priority = EventPriority.LOW) 
     public void blockDamageEventHandler (BlockDamageEvent event) {
     	if ((protection > 1) && (building == false)) {
+    		// logger.info("[" + pdfFile.getName() + "." + event.getEventName() + "]");
     		Block block = event.getBlock();
-    		if (queryProtectedLocation(block.getLocation())) {
+    		if (isProtected(block.getLocation())) {
     			if ((block.getType().hasGravity() || (block.getType() == Material.MINECART))) {
     				return;
     			    }
@@ -3504,7 +3596,8 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
     @EventHandler (priority = EventPriority.LOW)
     public void blockSpreadEventHandler (BlockSpreadEvent event) {
     	if ((protection > 1) && (building == false)) {
-            if (queryProtectedLocation(event.getBlock().getLocation())) {
+    		// logger.info("[" + pdfFile.getName() + "." + event.getEventName() + "]");
+            if (isProtected(event.getBlock().getLocation())) {
             	if (event.getBlock().getType() == Material.WATER) {
        	     		event.setCancelled(true);  
             	    }
@@ -3517,16 +3610,20 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
         }
  
     @EventHandler (priority = EventPriority.LOW) 
-    public void blockIgniteEventHandler (BlockIgniteEvent event) {    	
-		if (queryProtectedLocation(event.getBlock().getLocation())) {
-   		    event.setCancelled(true);
-		    }
+    public void blockIgniteEventHandler (BlockIgniteEvent event) {  
+    	if ((protection > 1) && (building == false)) {
+        	// logger.info("[" + pdfFile.getName() + "." + event.getEventName() + "]");
+    		if (isProtected(event.getBlock().getLocation())) {
+       		    event.setCancelled(true);
+    		    }
+    	    }
 	    }
     
     @EventHandler (priority = EventPriority.LOW)
     public void creatureSpawnEventHandler (CreatureSpawnEvent event) {
     	if ((protection > 1) && (building == false)) {
-    		if (queryProtectedLocation(event.getLocation())) {
+    		// logger.info("[" + pdfFile.getName() + "." + event.getEventName() + "]");
+    		if (isProtected(event.getLocation())) {
             	if (event.getEntity() instanceof Monster) {
             	 	event.setCancelled(true);  
             	    }
@@ -3540,7 +3637,8 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
     @EventHandler (priority = EventPriority.LOW)
     public void entityDamageByEntityEventHandler (EntityDamageByEntityEvent event) {
     	if ((protection > 1) && (building == false)) {
-    		if (queryProtectedLocation(event.getEntity().getLocation())) {
+    		// logger.info("[" + pdfFile.getName() + "." + event.getEventName() + "]");
+    		if (isProtected(event.getEntity().getLocation())) {
     			if (event.getDamager() != null) {
     				if (event.getDamager() instanceof Player) {
     					Player player1 = (Player) event.getDamager();
@@ -3564,7 +3662,8 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
     @EventHandler (priority = EventPriority.LOW)
     public void entityShootBowEventHandler (EntityShootBowEvent event) {
     	if ((protection > 1) && (building == false)) {
-        	if (queryProtectedLocation(event.getEntity().getLocation())) {
+    		// logger.info("[" + pdfFile.getName() + "." + event.getEventName() + "]");
+        	if (isProtected(event.getEntity().getLocation())) {
             	if (event.getEntity() instanceof Player) {
         			Player player = (Player) event.getEntity();
         			player.sendMessage("<SUBWAY> No fighting in the subway! ");
@@ -3577,7 +3676,8 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
     @EventHandler (priority = EventPriority.LOW)
     public void explosionPrimeEventHandler (ExplosionPrimeEvent event) {
     	if ((protection > 1) && (building == false)) {
-        	if (queryProtectedLocation(event.getEntity().getLocation())) {
+    		// logger.info("[" + pdfFile.getName() + "." + event.getEventName() + "]");
+        	if (isProtected(event.getEntity().getLocation())) {
         		if (event.getEntity() instanceof Player) {
         			Player player = (Player) event.getEntity();
         			player.sendMessage("<SUBWAY> No terrorism in the subway! ");
@@ -3590,7 +3690,8 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
     @EventHandler (priority = EventPriority.LOW) 
     public void hangingPlaceEventHandler (HangingPlaceEvent event) {
     	if ((protection > 1) && (building == false)) {
-        	if (queryProtectedLocation(event.getEntity().getLocation())) {
+    		// logger.info("[" + pdfFile.getName() + "." + event.getEventName() + "]");
+        	if (isProtected(event.getEntity().getLocation())) {
         		Player player = event.getPlayer();
     			player.sendMessage("<SUBWAY> You can't hang that in the subway! ");
     			event.setCancelled(true);      		
@@ -3601,7 +3702,8 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
     @EventHandler (priority = EventPriority.LOW)
     public void lightningStrikeEventHandler (LightningStrikeEvent event) {
     	if ((protection > 1) && (building == false)) {
-        	if (queryProtectedLocation(event.getLightning().getLocation())) {
+    		// logger.info("[" + pdfFile.getName() + "." + event.getEventName() + "]");
+        	if (isProtected(event.getLightning().getLocation())) {
            		event.setCancelled(true);  
                 }
     	    }
@@ -3610,6 +3712,7 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
     @EventHandler (priority = EventPriority.LOW)
     public void potionSplashHanler (PotionSplashEvent event) {
     	if ((protection > 1) && (building == false)) {
+    		// logger.info("[" + pdfFile.getName() + "." + event.getEventName() + "]");
     		Collection<LivingEntity> livingEntities = event.getAffectedEntities();
     		Player player = null;
     		if (livingEntities.isEmpty() == false) {
@@ -3618,7 +3721,7 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
     		    while (entityIndex < entity.length) {
     		    	if (entity[entityIndex] instanceof Player) {
     		    		player = (Player) entity[entityIndex];
-    		    		if (queryProtectedLocation(player.getLocation())) {
+    		    		if (isProtected(player.getLocation())) {
     		    			entity[entityIndex].remove();   
         				    }
     		    	    }
@@ -3626,14 +3729,24 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
     		        }
     		    }		
     	    }    	
-        }    
+        }
     
     @EventHandler (priority = EventPriority.LOW)
     public void playerInteractHandler (PlayerInteractEvent event) {
+    	// logger.info("[" + pdfFile.getName() + "." + event.getEventName() + "]");
     	Player player = event.getPlayer();
     	if (event.getClickedBlock() != null) {
+    		// logger.info("[" + pdfFile.getName() + "." + event.getEventName() + "] ClickedBlock='" + event.getClickedBlock().getType().toString() + "'. ");
     		Block clickedBlock = event.getClickedBlock();
-    		if (((clickedBlock.getType() == Material.HEAVY_WEIGHTED_PRESSURE_PLATE)) || (clickedBlock.getType() == Material.LIGHT_WEIGHTED_PRESSURE_PLATE))  {
+    		if (((clickedBlock.getType() == Material.RAIL)) || (clickedBlock.getType() == Material.POWERED_RAIL))  {
+    	    	if (event.getItem() != null) {
+    	        	// logger.info("[" + pdfFile.getName() + "." + event.getEventName() + "] ClickedBlock='" + event.getClickedBlock().getType().toString() + "'. Item='" + event.getItem().getType().toString() + "'. ");
+    	    	    if (event.getItem().getType() == Material.MINECART) {
+    	    	    	return;    		
+    	    	        }
+    	    	    }
+    		    }
+    		else if (((clickedBlock.getType() == Material.HEAVY_WEIGHTED_PRESSURE_PLATE)) || (clickedBlock.getType() == Material.LIGHT_WEIGHTED_PRESSURE_PLATE))  {
     			Location location = clickedBlock.getLocation();
     	    	int playerX = location.getBlockX();
     	    	int playerY = location.getBlockY();
@@ -3690,7 +3803,7 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
     				    }    		    		
     	    	    }
     	        } 
-    		else if (queryProtectedLocation(clickedBlock.getLocation())) {
+    		else if (isProtected(clickedBlock.getLocation())) {
     			if (protection > 0) {
         			if (player.isOp()) {
         				if (opStick(player)) {
@@ -3709,7 +3822,7 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
                 }
 		    }		
         }
-            
+                        
     private String getFileName(String bookName) {
     	String fileName = null;
 		String searchName = null;
