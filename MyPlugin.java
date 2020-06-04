@@ -1174,6 +1174,14 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
     	return (protect);
         }
     
+    
+    private void protectBlock(Block block) {
+        if ((block.getType() == Material.RAIL) || (block.getType() == Material.POWERED_RAIL) || (block.getType() == Material.DETECTOR_RAIL) || (block.getType() == Material.ACTIVATOR_RAIL)) {
+		    insertBlock(block);
+            }
+        }
+
+    
 	private void onTick() {
 		if (building) {
 			if (subwayDistance >= subwayLength) {
@@ -3394,7 +3402,7 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
     	Block block = null;
 		block = getBlock(distancePos,altitudePos,centerPos);
 		block.setType(material);
-		insertBlock(block);
+		protectBlock(block);
         }
     
     private void clearBlockType(long distancePos, int altitudePos, long centerPos, Material material) {
