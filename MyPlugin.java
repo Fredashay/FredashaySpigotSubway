@@ -1177,7 +1177,12 @@ public class MyPlugin extends JavaPlugin implements Listener, CommandExecutor {
     
     private void protectBlock(Block block) {
         if ((block.getType() == Material.RAIL) || (block.getType() == Material.POWERED_RAIL) || (block.getType() == Material.DETECTOR_RAIL) || (block.getType() == Material.ACTIVATOR_RAIL)) {
-		    insertBlock(block);
+        	if (queryProtectedLocation(block.getLocation())) {
+        		return;
+        	    }
+        	else {
+		        insertBlock(block);
+        	    }
             }
         }
 
